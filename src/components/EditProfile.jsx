@@ -6,6 +6,11 @@ import {
   FiPhone,
   FiMapPin,
   FiCamera,
+  FiLock,
+  FiEye,
+  FiEyeOff,
+  FiCheckCircle,
+  FiAlertCircle,
 } from "react-icons/fi";
 import Button from "./ui/Button";
 import Input from "./ui/Input";
@@ -42,9 +47,88 @@ const EditProfile = ({ onClose }) => {
     return null;
   });
 
+  // Password change state
+  const [showPasswordSection, setShowPasswordSection] = useState(false);
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handlePasswordChange = (e) => {
+    const { name, value } = e.target;
+    setPasswordData((prev) => ({ ...prev, [name]: value }));
+    setPasswordError("");
+    setPasswordSuccess(false);
+  };
+
+  const handleChangePassword = (e) => {
+    e.preventDefault();
+    setPasswordError("");
+    setPasswordSuccess(false);
+
+    // Validate passwords
+    if (passwordData.newPassword.length < 6) {
+      setPasswordError("New password must be at least 6 characters");
+      return;
+    }
+
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setPasswordError("New passwords do not match");
+      return;
+    }
+
+    // Get current user from registered users
+    const registeredUsers = JSON.parse(
+      localStorage.getItem("unifyr_registered_users") || "[]"
+    );
+    const currentUser = registeredUsers.find((u) => u.email === user?.email);
+
+    if (!currentUser) {
+      setPasswordError("User not found");
+      return;
+    }
+
+    // Verify current password
+    if (currentUser.password !== passwordData.currentPassword) {
+      setPasswordError("Current password is incorrect");
+      return;
+    }
+
+    // Update password
+    const updatedUsers = registeredUsers.map((u) => {
+      if (u.email === user?.email) {
+        return { ...u, password: passwordData.newPassword };
+      }
+      return u;
+    });
+
+    localStorage.setItem(
+      "unifyr_registered_users",
+      JSON.stringify(updatedUsers)
+    );
+
+    // Clear password fields and show success
+    setPasswordData({
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    });
+    setPasswordSuccess(true);
+    setTimeout(() => {
+      setPasswordSuccess(false);
+      setShowPasswordSection(false);
+    }, 3000);
   };
 
   const handlePictureUpload = (e) => {
@@ -253,6 +337,199 @@ const EditProfile = ({ onClose }) => {
               rows="4"
               className="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 backdrop-blur-sm text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-[#FFD60A] transition-all resize-none"
             />
+          </div>
+
+          {/* Change Password Section */}
+          <div className="border-t border-white/10 pt-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-white font-semibold text-lg">Security</h3>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowPasswordSection(!showPasswordSection);
+                  setPasswordError("");
+                  setPasswordSuccess(false);
+                  setPasswordData({
+                    currentPassword: "",
+                    newPassword: "",
+                    confirmPassword: "",
+                  });
+                }}
+                className="text-[#FFD60A] hover:underline text-sm font-medium"
+              >
+                {showPasswordSection ? "Cancel" : "Change Password"}
+              </button>
+            </div>
+
+            {showPasswordSection && (
+              <div className="space-y-4 p-4 bg-white/5 border border-white/10 rounded-lg">
+                {passwordError && (
+                  <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm">
+                    <FiAlertCircle size={18} />
+                    <span>{passwordError}</span>
+                  </div>
+                )}
+
+                {passwordSuccess && (
+                  <div className="flex items-center gap-2 p-3 bg-green-500/10 border border-green-500/30 rounded-lg text-green-400 text-sm">
+                    <FiCheckCircle size={18} />
+                    <span>Password changed successfully!</span>
+                  </div>
+                )}
+
+                {/* Current Password */}
+                <div>
+                  <label className="text-sm font-medium text-white/90 mb-2 block">
+                    Current Password
+                  </label>
+                  <div className="relative">
+                    <FiLock
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50"
+                      size={18}
+                    />
+                    <input
+                      type={showCurrentPassword ? "text" : "password"}
+                      name="currentPassword"
+                      placeholder="Enter current password"
+                      value={passwordData.currentPassword}
+                      onChange={handlePasswordChange}
+                      className="w-full pl-12 pr-12 py-3 rounded-lg bg-white/10 border border-white/20 backdrop-blur-sm text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-[#FFD60A] transition-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setShowCurrentPassword(!showCurrentPassword)
+                      }
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-white/50 hover:text-white/80 transition-colors"
+                    >
+                      {showCurrentPassword ? (
+                        <FiEyeOff size={18} />
+                      ) : (
+                        <FiEye size={18} />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* New Password */}
+                <div>
+                  <label className="text-sm font-medium text-white/90 mb-2 block">
+                    New Password
+                  </label>
+                  <div className="relative">
+                    <FiLock
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50"
+                      size={18}
+                    />
+                    <input
+                      type={showNewPassword ? "text" : "password"}
+                      name="newPassword"
+                      placeholder="Enter new password"
+                      value={passwordData.newPassword}
+                      onChange={handlePasswordChange}
+                      className="w-full pl-12 pr-12 py-3 rounded-lg bg-white/10 border border-white/20 backdrop-blur-sm text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-[#FFD60A] transition-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-white/50 hover:text-white/80 transition-colors"
+                    >
+                      {showNewPassword ? (
+                        <FiEyeOff size={18} />
+                      ) : (
+                        <FiEye size={18} />
+                      )}
+                    </button>
+                  </div>
+                  {passwordData.newPassword && (
+                    <p
+                      className={`text-xs mt-1 ml-1 ${
+                        passwordData.newPassword.length < 6
+                          ? "text-red-400"
+                          : passwordData.newPassword.length < 10
+                          ? "text-yellow-400"
+                          : "text-green-400"
+                      }`}
+                    >
+                      Password strength:{" "}
+                      {passwordData.newPassword.length < 6
+                        ? "Weak"
+                        : passwordData.newPassword.length < 10
+                        ? "Medium"
+                        : "Strong"}
+                    </p>
+                  )}
+                </div>
+
+                {/* Confirm New Password */}
+                <div>
+                  <label className="text-sm font-medium text-white/90 mb-2 block">
+                    Confirm New Password
+                  </label>
+                  <div className="relative">
+                    <FiLock
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50"
+                      size={18}
+                    />
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      name="confirmPassword"
+                      placeholder="Confirm new password"
+                      value={passwordData.confirmPassword}
+                      onChange={handlePasswordChange}
+                      className="w-full pl-12 pr-12 py-3 rounded-lg bg-white/10 border border-white/20 backdrop-blur-sm text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-[#FFD60A] transition-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setShowConfirmPassword(!showConfirmPassword)
+                      }
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-white/50 hover:text-white/80 transition-colors"
+                    >
+                      {showConfirmPassword ? (
+                        <FiEyeOff size={18} />
+                      ) : (
+                        <FiEye size={18} />
+                      )}
+                    </button>
+                  </div>
+                  {passwordData.confirmPassword && (
+                    <div className="flex items-center gap-1 mt-1 ml-1">
+                      {passwordData.newPassword ===
+                      passwordData.confirmPassword ? (
+                        <>
+                          <FiCheckCircle className="text-green-400" size={14} />
+                          <p className="text-xs text-green-400">
+                            Passwords match
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <FiAlertCircle className="text-red-400" size={14} />
+                          <p className="text-xs text-red-400">
+                            Passwords do not match
+                          </p>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <Button
+                  variant="primary"
+                  type="button"
+                  onClick={handleChangePassword}
+                  className="w-full"
+                  disabled={
+                    !passwordData.currentPassword ||
+                    !passwordData.newPassword ||
+                    !passwordData.confirmPassword
+                  }
+                >
+                  Update Password
+                </Button>
+              </div>
+            )}
           </div>
 
           {/* Action Buttons */}
