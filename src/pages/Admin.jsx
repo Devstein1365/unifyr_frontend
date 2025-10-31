@@ -16,103 +16,52 @@ import Select from "../components/ui/Select";
 import OrderDetails from "../components/OrderDetails";
 import EditOrder from "../components/EditOrder";
 import { useAuth } from "../context/AuthContext";
+import { adminAPI } from "../services/api";
 
 const Admin = () => {
   const { user } = useAuth();
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [editingOrder, setEditingOrder] = useState(null);
   const [allOrders, setAllOrders] = useState([]);
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // Load all orders from all users in localStorage
+  // Load all orders and stats from backend
   useEffect(() => {
-    const loadAllOrders = () => {
-      const registeredUsers = JSON.parse(
-        localStorage.getItem("unifyr_registered_users") || "[]"
-      );
+    const loadAdminData = async () => {
+      try {
+        setLoading(true);
 
-      let combinedOrders = [];
-
-      // Load orders from each registered user
-      registeredUsers.forEach((registeredUser) => {
-        const userOrders = localStorage.getItem(
-          `orders_${registeredUser.email}`
-        );
-        if (userOrders) {
-          const orders = JSON.parse(userOrders);
-          // Add customer name to each order
-          const ordersWithCustomer = orders.map((order) => ({
-            ...order,
-            customer: registeredUser.name || registeredUser.email,
-          }));
-          combinedOrders = [...combinedOrders, ...ordersWithCustomer];
+        // Load stats
+        const statsResponse = await adminAPI.getStats();
+        if (statsResponse.success) {
+          setStats(statsResponse.stats);
         }
-      });
 
-      // Sort by date (newest first)
-      combinedOrders.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-      setAllOrders(combinedOrders);
+        // Load all orders
+        const ordersResponse = await adminAPI.getAllOrders();
+        if (ordersResponse.success) {
+          setAllOrders(ordersResponse.orders || []);
+        }
+      } catch (error) {
+        console.error("Error loading admin data:", error);
+        setAllOrders([]);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    loadAllOrders();
+    if (user?.role === "admin") {
+      loadAdminData();
 
-    // Refresh orders every 5 seconds to catch new orders
-    const interval = setInterval(loadAllOrders, 5000);
+      // Refresh orders every 30 seconds
+      const interval = setInterval(loadAdminData, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [user]);
 
-    return () => clearInterval(interval);
-  }, []);
-
-  // Old mock data kept as fallback - replace with API calls
-  const mockOrders = [
-    {
-      id: "ORD-001",
-      customer: "John Doe",
-      service: "Printing",
-      type: "Business Cards",
-      status: "completed",
-      date: "2025-10-28",
-      price: 250.0,
-    },
-    {
-      id: "ORD-002",
-      customer: "Jane Smith",
-      service: "Food Delivery",
-      type: "Office Lunch",
-      status: "in-progress",
-      date: "2025-10-30",
-      price: 75.0,
-    },
-    {
-      id: "ORD-003",
-      customer: "Mike Johnson",
-      service: "Recruitment",
-      type: "Developer",
-      status: "pending",
-      date: "2025-10-29",
-      price: 200.0,
-    },
-    {
-      id: "ORD-004",
-      customer: "Sarah Williams",
-      service: "Real Estate",
-      type: "Property Listing",
-      status: "in-progress",
-      date: "2025-10-27",
-      price: 300.0,
-    },
-    {
-      id: "ORD-005",
-      customer: "Tom Brown",
-      service: "Printing",
-      type: "Banners",
-      status: "completed",
-      date: "2025-10-26",
-      price: 150.0,
-    },
-  ];
-
-  // Use real orders if available, otherwise fallback to mock data
-  const displayOrders = allOrders.length > 0 ? allOrders : mockOrders;
+  // Use real orders from backend
+  const displayOrders = allOrders;
 
   const [filterStatus, setFilterStatus] = useState("all");
 
@@ -176,46 +125,44 @@ const Admin = () => {
     XLSX.writeFile(workbook, filename);
   };
 
-  const stats = [
-    {
-      label: "Total Orders",
-      value: displayOrders.length,
-      change: "+12%",
-      icon: FiShoppingCart,
-      color: "#FFD60A",
-    },
-    {
-      label: "Total Users",
-      value: JSON.parse(localStorage.getItem("unifyr_registered_users") || "[]")
-        .length,
-      change: "+8%",
-      icon: FiUsers,
-      color: "#3B82F6",
-    },
-    {
-      label: "Revenue",
-      value: `$${displayOrders
-        .reduce((sum, o) => sum + o.price, 0)
-        .toFixed(0)}`,
-      change: "+23%",
-      icon: FiDollarSign,
-      color: "#10B981",
-    },
-    {
-      label: "Completion Rate",
-      value:
-        displayOrders.length > 0
-          ? `${Math.round(
-              (displayOrders.filter((o) => o.status === "completed").length /
-                displayOrders.length) *
-                100
-            )}%`
-          : "0%",
-      change: "+5%",
-      icon: FiTrendingUp,
-      color: "#F59E0B",
-    },
-  ];
+  // Dynamic stats from backend
+  const statsDisplay = stats
+    ? [
+        {
+          label: "Total Orders",
+          value: stats.totalOrders || 0,
+          change: "+12%",
+          icon: FiShoppingCart,
+          color: "#FFD60A",
+        },
+        {
+          label: "Total Users",
+          value: stats.totalUsers || 0,
+          change: "+8%",
+          icon: FiUsers,
+          color: "#3B82F6",
+        },
+        {
+          label: "Revenue",
+          value: `$${stats.totalRevenue?.toFixed(0) || 0}`,
+          change: "+23%",
+          icon: FiDollarSign,
+          color: "#10B981",
+        },
+        {
+          label: "Completion Rate",
+          value:
+            stats.totalOrders > 0
+              ? `${Math.round(
+                  (stats.completedOrders / stats.totalOrders) * 100
+                )}%`
+              : "0%",
+          change: "+5%",
+          icon: FiTrendingUp,
+          color: "#F59E0B",
+        },
+      ]
+    : [];
 
   const statusOptions = [
     { value: "all", label: "All Orders" },
@@ -275,30 +222,37 @@ const Admin = () => {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {stats.map((stat, index) => (
-            <Card
-              key={index}
-              variant="glass"
-              className="hover:scale-105 transition-transform"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div
-                  className="w-12 h-12 rounded-lg flex items-center justify-center"
-                  style={{
-                    backgroundColor: `${stat.color}20`,
-                    color: stat.color,
-                  }}
-                >
-                  <stat.icon size={24} />
+          {loading ? (
+            <div className="col-span-4 text-center py-8">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFD60A] mx-auto"></div>
+              <p className="text-white/60 mt-4">Loading stats...</p>
+            </div>
+          ) : (
+            statsDisplay.map((stat, index) => (
+              <Card
+                key={index}
+                variant="glass"
+                className="hover:scale-105 transition-transform"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div
+                    className="w-12 h-12 rounded-lg flex items-center justify-center"
+                    style={{
+                      backgroundColor: `${stat.color}20`,
+                      color: stat.color,
+                    }}
+                  >
+                    <stat.icon size={24} />
+                  </div>
+                  <span className="text-green-400 text-sm font-semibold">
+                    {stat.change}
+                  </span>
                 </div>
-                <span className="text-green-400 text-sm font-semibold">
-                  {stat.change}
-                </span>
-              </div>
-              <p className="text-white/60 text-sm mb-1">{stat.label}</p>
-              <p className="text-2xl font-bold text-white">{stat.value}</p>
-            </Card>
-          ))}
+                <p className="text-white/60 text-sm mb-1">{stat.label}</p>
+                <p className="text-2xl font-bold text-white">{stat.value}</p>
+              </Card>
+            ))
+          )}
         </div>
 
         {/* Orders Management */}
@@ -350,66 +304,79 @@ const Admin = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredOrders.map((order) => (
-                  <tr
-                    key={order.id}
-                    className="border-b border-white/5 hover:bg-white/5 transition-colors"
-                  >
-                    <td className="py-4 px-4 text-white font-medium">
-                      {order.id}
-                    </td>
-                    <td className="py-4 px-4 text-white/80">
-                      {order.customer}
-                    </td>
-                    <td className="py-4 px-4 text-white/80">{order.service}</td>
-                    <td className="py-4 px-4 text-white/60 text-sm">
-                      {order.type}
-                    </td>
-                    <td className="py-4 px-4">
-                      <span
-                        className={`text-xs px-2 py-1 rounded-full border inline-flex items-center gap-1 ${getStatusColor(
-                          order.status
-                        )}`}
-                      >
-                        {getStatusIcon(order.status)}
-                        {order.status}
-                      </span>
-                    </td>
-                    <td className="py-4 px-4 text-white/60 text-sm">
-                      {order.date}
-                    </td>
-                    <td className="py-4 px-4 text-right text-[#FFD60A] font-semibold">
-                      ${order.price.toFixed(2)}
-                    </td>
-                    <td className="py-4 px-4 text-right">
-                      <div className="flex gap-2 justify-end">
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => setEditingOrder(order)}
-                        >
-                          Edit
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setSelectedOrder(order)}
-                        >
-                          View
-                        </Button>
-                      </div>
+                {loading ? (
+                  <tr>
+                    <td colSpan="8" className="py-12 text-center">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFD60A] mx-auto"></div>
+                      <p className="text-white/60 mt-4">Loading orders...</p>
                     </td>
                   </tr>
-                ))}
+                ) : filteredOrders.length === 0 ? (
+                  <tr>
+                    <td colSpan="8" className="py-12 text-center">
+                      <p className="text-white/50">
+                        No orders found with this status
+                      </p>
+                    </td>
+                  </tr>
+                ) : (
+                  filteredOrders.map((order) => (
+                    <tr
+                      key={order.orderId || order.id || order._id}
+                      className="border-b border-white/5 hover:bg-white/5 transition-colors"
+                    >
+                      <td className="py-4 px-4 text-white font-medium">
+                        {order.orderId || order.id}
+                      </td>
+                      <td className="py-4 px-4 text-white/80">
+                        {order.customer?.name || order.customer}
+                      </td>
+                      <td className="py-4 px-4 text-white/80">
+                        {order.service}
+                      </td>
+                      <td className="py-4 px-4 text-white/60 text-sm">
+                        {order.type}
+                      </td>
+                      <td className="py-4 px-4">
+                        <span
+                          className={`text-xs px-2 py-1 rounded-full border inline-flex items-center gap-1 ${getStatusColor(
+                            order.status
+                          )}`}
+                        >
+                          {getStatusIcon(order.status)}
+                          {order.status}
+                        </span>
+                      </td>
+                      <td className="py-4 px-4 text-white/60 text-sm">
+                        {new Date(order.date).toLocaleDateString()}
+                      </td>
+                      <td className="py-4 px-4 text-right text-[#FFD60A] font-semibold">
+                        ${order.price.toFixed(2)}
+                      </td>
+                      <td className="py-4 px-4 text-right">
+                        <div className="flex gap-2 justify-end">
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => setEditingOrder(order)}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSelectedOrder(order)}
+                          >
+                            View
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
-
-          {filteredOrders.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-white/50">No orders found with this status</p>
-            </div>
-          )}
         </Card>
       </div>
 

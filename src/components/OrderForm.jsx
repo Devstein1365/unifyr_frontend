@@ -89,16 +89,31 @@ const OrderForm = ({ onClose, onSubmit }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    // Format data to match backend Order model
     const orderData = {
-      id: `ORD-${Date.now().toString().slice(-6)}`,
       service: services.find((s) => s.value === formData.service)?.label || "",
       type: getOrderType(),
       quantity: getOrderQuantity(),
-      status: "pending",
-      date: new Date().toISOString().split("T")[0],
       price: parseFloat(calculatePrice()),
-      details: formData,
+      notes: formData.description || "",
+      // Service-specific fields
+      ...(formData.service === "printing" && {
+        printType: formData.printType,
+        material: formData.material,
+      }),
+      ...(formData.service === "food" && {
+        deliveryTime: formData.deliveryTime,
+      }),
+      ...(formData.service === "recruitment" && {
+        salaryRange: formData.salaryRange,
+      }),
+      ...(formData.service === "realestate" && {
+        propertyType: formData.propertyType,
+        budget: formData.budget,
+      }),
     };
+
     onSubmit(orderData);
   };
 

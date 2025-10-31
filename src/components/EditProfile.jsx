@@ -15,6 +15,7 @@ import {
 import Button from "./ui/Button";
 import Input from "./ui/Input";
 import { useAuth } from "../context/AuthContext";
+import { authAPI } from "../services/api";
 
 const EditProfile = ({ onClose }) => {
   const { user, updateUser } = useAuth();
@@ -72,7 +73,7 @@ const EditProfile = ({ onClose }) => {
     setPasswordSuccess(false);
   };
 
-  const handleChangePassword = (e) => {
+  const handleChangePassword = async (e) => {
     e.preventDefault();
     setPasswordError("");
     setPasswordSuccess(false);
@@ -88,47 +89,31 @@ const EditProfile = ({ onClose }) => {
       return;
     }
 
-    // Get current user from registered users
-    const registeredUsers = JSON.parse(
-      localStorage.getItem("unifyr_registered_users") || "[]"
-    );
-    const currentUser = registeredUsers.find((u) => u.email === user?.email);
+    try {
+      const response = await authAPI.changePassword(
+        passwordData.currentPassword,
+        passwordData.newPassword
+      );
 
-    if (!currentUser) {
-      setPasswordError("User not found");
-      return;
-    }
-
-    // Verify current password
-    if (currentUser.password !== passwordData.currentPassword) {
-      setPasswordError("Current password is incorrect");
-      return;
-    }
-
-    // Update password
-    const updatedUsers = registeredUsers.map((u) => {
-      if (u.email === user?.email) {
-        return { ...u, password: passwordData.newPassword };
+      if (response.success) {
+        // Clear password fields and show success
+        setPasswordData({
+          currentPassword: "",
+          newPassword: "",
+          confirmPassword: "",
+        });
+        setPasswordSuccess(true);
+        setTimeout(() => {
+          setPasswordSuccess(false);
+          setShowPasswordSection(false);
+        }, 3000);
       }
-      return u;
-    });
-
-    localStorage.setItem(
-      "unifyr_registered_users",
-      JSON.stringify(updatedUsers)
-    );
-
-    // Clear password fields and show success
-    setPasswordData({
-      currentPassword: "",
-      newPassword: "",
-      confirmPassword: "",
-    });
-    setPasswordSuccess(true);
-    setTimeout(() => {
-      setPasswordSuccess(false);
-      setShowPasswordSection(false);
-    }, 3000);
+    } catch (error) {
+      console.error("Error changing password:", error);
+      setPasswordError(
+        error.response?.data?.message || "Failed to change password"
+      );
+    }
   };
 
   const handlePictureUpload = (e) => {
@@ -155,43 +140,42 @@ const EditProfile = ({ onClose }) => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSaving(true);
 
-    setTimeout(() => {
-      // Save to profile-specific localStorage (including profile picture)
-      const profileData = { ...formData, profilePicture };
-      localStorage.setItem(
-        `profile_${user?.email}`,
-        JSON.stringify(profileData)
-      );
+    try {
+      const response = await authAPI.updateProfile({
+        name: formData.name,
+        phone: formData.phone,
+        address: formData.address,
+        city: formData.city,
+        country: formData.country,
+        bio: formData.bio,
+        profilePicture,
+      });
 
-      // Update name in registered users if changed
-      if (formData.name !== user?.name && user?.email !== "admin@unifyr.com") {
-        const registeredUsers = JSON.parse(
-          localStorage.getItem("unifyr_registered_users") || "[]"
+      if (response.success) {
+        // Update current session user data with the updated info from backend
+        const updatedUser = { ...user, ...response.user };
+        updateUser(updatedUser);
+
+        // Also save profile picture to localStorage for quick access
+        const profileData = { ...formData, profilePicture };
+        localStorage.setItem(
+          `profile_${user?.email}`,
+          JSON.stringify(profileData)
         );
-        const userIndex = registeredUsers.findIndex(
-          (u) => u.email === user?.email
-        );
-        if (userIndex !== -1) {
-          registeredUsers[userIndex].name = formData.name;
-          localStorage.setItem(
-            "unifyr_registered_users",
-            JSON.stringify(registeredUsers)
-          );
-        }
+
+        alert("Profile updated successfully!");
+        onClose();
       }
-
-      // Update current session user data
-      const updatedUser = { ...user, name: formData.name };
-      updateUser(updatedUser);
-
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      alert(error.response?.data?.message || "Failed to update profile");
+    } finally {
       setIsSaving(false);
-      alert("Profile updated successfully!");
-      onClose();
-    }, 1000);
+    }
   };
 
   return (

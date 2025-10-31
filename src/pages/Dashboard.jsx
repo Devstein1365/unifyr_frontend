@@ -17,6 +17,7 @@ import ViewInvoices from "../components/ViewInvoices";
 import EditProfile from "../components/EditProfile";
 import ViewAllOrders from "../components/ViewAllOrders";
 import { useAuth } from "../context/AuthContext";
+import { orderAPI } from "../services/api";
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -28,64 +29,52 @@ const Dashboard = () => {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [orders, setOrders] = useState([]);
   const [profilePicture, setProfilePicture] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // Load orders and profile from localStorage on component mount
+  // Load orders from backend on component mount
   useEffect(() => {
-    const savedOrders = localStorage.getItem(`orders_${user?.email}`);
-    if (savedOrders) {
-      setOrders(JSON.parse(savedOrders));
-    } else {
-      // Initialize with mock data if no orders exist
-      const initialOrders = [
-        {
-          id: "ORD-001",
-          service: "Printing & Branding",
-          type: "Business Cards",
-          quantity: 500,
-          status: "completed",
-          date: "2025-10-28",
-          price: 250.0,
-        },
-        {
-          id: "ORD-002",
-          service: "Food Delivery",
-          type: "Office Lunch",
-          quantity: 15,
-          status: "in-progress",
-          date: "2025-10-30",
-          price: 75.0,
-        },
-        {
-          id: "ORD-003",
-          service: "Recruitment",
-          type: "Software Engineer",
-          quantity: 2,
-          status: "pending",
-          date: "2025-10-29",
-          price: 200.0,
-        },
-      ];
-      setOrders(initialOrders);
-      localStorage.setItem(
-        `orders_${user?.email}`,
-        JSON.stringify(initialOrders)
-      );
+    const loadOrders = async () => {
+      try {
+        setLoading(true);
+        const response = await orderAPI.getUserOrders();
+        if (response.success) {
+          setOrders(response.orders || []);
+        }
+      } catch (error) {
+        console.error("Error loading orders:", error);
+        // Keep empty array on error
+        setOrders([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (user) {
+      loadOrders();
     }
 
-    // Load profile picture
+    // Load profile picture from localStorage (will be moved to backend later)
     const savedProfile = localStorage.getItem(`profile_${user?.email}`);
     if (savedProfile) {
       const profile = JSON.parse(savedProfile);
       setProfilePicture(profile.profilePicture || null);
     }
-  }, [user?.email, showEditProfile]); // Re-load when profile is edited
+  }, [user, showEditProfile]); // Re-load when profile is edited
 
   // Handle new order submission
-  const handleOrderSubmit = (orderData) => {
-    const newOrders = [orderData, ...orders];
-    setOrders(newOrders);
-    localStorage.setItem(`orders_${user?.email}`, JSON.stringify(newOrders));
-    setShowOrderForm(false);
+  const handleOrderSubmit = async (orderData) => {
+    try {
+      const response = await orderAPI.createOrder(orderData);
+      if (response.success) {
+        // Add new order to the beginning of the list
+        setOrders([response.order, ...orders]);
+        setShowOrderForm(false);
+        alert("Order created successfully!");
+      }
+    } catch (error) {
+      console.error("Error creating order:", error);
+      alert(error.response?.data?.message || "Failed to create order");
+    }
   };
 
   const getStatusColor = (status) => {
@@ -202,45 +191,68 @@ const Dashboard = () => {
               </div>
 
               <div className="space-y-4">
-                {orders.map((order) => (
-                  <div
-                    key={order.id}
-                    className="flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/10 hover:bg-white/10 transition-all"
-                  >
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <span className="font-semibold text-white">
-                          {order.id}
-                        </span>
-                        <span
-                          className={`text-xs px-2 py-1 rounded-full border flex items-center gap-1 ${getStatusColor(
-                            order.status
-                          )}`}
-                        >
-                          {getStatusIcon(order.status)}
-                          {order.status}
-                        </span>
-                      </div>
-                      <p className="text-white/70 text-sm">{order.service}</p>
-                      <p className="text-white/50 text-xs">
-                        {order.type} • Qty: {order.quantity} • {order.date}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-[#FFD60A] font-bold">
-                        ${order.price.toFixed(2)}
-                      </p>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        className="mt-2"
-                        onClick={() => setSelectedOrder(order)}
-                      >
-                        View Details
-                      </Button>
-                    </div>
+                {loading ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFD60A] mx-auto"></div>
+                    <p className="text-white/60 mt-4">Loading orders...</p>
                   </div>
-                ))}
+                ) : orders.length === 0 ? (
+                  <div className="text-center py-8">
+                    <FiPackage
+                      className="mx-auto text-white/30 mb-4"
+                      size={48}
+                    />
+                    <p className="text-white/60 mb-4">No orders yet</p>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => setShowOrderForm(true)}
+                    >
+                      Create Your First Order
+                    </Button>
+                  </div>
+                ) : (
+                  orders.map((order) => (
+                    <div
+                      key={order.orderId || order.id || order._id}
+                      className="flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/10 hover:bg-white/10 transition-all"
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <span className="font-semibold text-white">
+                            {order.orderId || order.id}
+                          </span>
+                          <span
+                            className={`text-xs px-2 py-1 rounded-full border flex items-center gap-1 ${getStatusColor(
+                              order.status
+                            )}`}
+                          >
+                            {getStatusIcon(order.status)}
+                            {order.status}
+                          </span>
+                        </div>
+                        <p className="text-white/70 text-sm">{order.service}</p>
+                        <p className="text-white/50 text-xs">
+                          {order.type} • Qty: {order.quantity} •{" "}
+                          {new Date(order.date).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[#FFD60A] font-bold">
+                          ${order.price.toFixed(2)}
+                        </p>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          className="mt-2"
+                          onClick={() => setSelectedOrder(order)}
+                        >
+                          View Details
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </Card>
           </div>
