@@ -30,7 +30,18 @@ const ViewInvoices = ({ orders, onClose }) => {
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `Invoice_${order.id}.pdf`;
+
+    // Generate creative filename: CustomerName_Service_OrderID_Date.pdf
+    const customerName = (
+      order.customer?.name ||
+      order.customer ||
+      "Customer"
+    ).replace(/\s+/g, "_");
+    const service = order.service.replace(/\s+/g, "_");
+    const orderId = order.orderId || order.id || "Unknown";
+    const date = new Date(order.date).toISOString().split("T")[0];
+
+    link.download = `Invoice_${customerName}_${service}_${orderId}_${date}.pdf`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -66,7 +77,7 @@ const ViewInvoices = ({ orders, onClose }) => {
     // Invoice Details
     doc.setFontSize(10);
     doc.setFont(undefined, "normal");
-    doc.text(`Invoice #: ${order.id}`, 150, 32);
+    doc.text(`Invoice #: ${order.orderId || order.id}`, 150, 32);
 
     // Date and Status
     let yPos = 55;
@@ -173,23 +184,40 @@ const ViewInvoices = ({ orders, onClose }) => {
       const zip = new JSZip();
       const invoicesFolder = zip.folder("Unifyr_Invoices");
 
-      // Generate all PDFs and add to zip
+      // Generate all PDFs and add to zip with creative names
       filteredOrders.forEach((order) => {
         const pdfDoc = generateInvoicePDF(order);
         const pdfBlob = pdfDoc.output("blob");
-        invoicesFolder.file(`Invoice_${order.id}.pdf`, pdfBlob);
+
+        // Generate creative filename for each invoice
+        const customerName = (
+          order.customer?.name ||
+          order.customer ||
+          "Customer"
+        ).replace(/\s+/g, "_");
+        const service = order.service.replace(/\s+/g, "_");
+        const orderId = order.orderId || order.id || "Unknown";
+        const date = new Date(order.date).toISOString().split("T")[0];
+
+        invoicesFolder.file(
+          `Invoice_${customerName}_${service}_${orderId}_${date}.pdf`,
+          pdfBlob
+        );
       });
 
       // Generate zip file
       const zipBlob = await zip.generateAsync({ type: "blob" });
 
-      // Download zip
+      // Download zip with creative filename
       const url = window.URL.createObjectURL(zipBlob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `Unifyr_Invoices_${
-        new Date().toISOString().split("T")[0]
-      }.zip`;
+
+      const now = new Date();
+      const dateStr = now.toISOString().split("T")[0];
+      const timeStr = now.toTimeString().split(" ")[0].replace(/:/g, "-");
+      link.download = `Unifyr_All_Invoices_${dateStr}_${timeStr}.zip`;
+
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);

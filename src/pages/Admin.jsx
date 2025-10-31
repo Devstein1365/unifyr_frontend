@@ -69,13 +69,13 @@ const Admin = () => {
   const exportToExcel = () => {
     // Prepare data for Excel
     const excelData = filteredOrders.map((order) => ({
-      "Order ID": order.id,
-      Customer: order.customer,
+      "Order ID": order.orderId || order.id,
+      Customer: order.customer?.name || order.customer || "N/A",
       Service: order.service,
       Type: order.type,
       Status: order.status.toUpperCase(),
-      Date: order.date,
-      Price: order.price,
+      Date: new Date(order.date).toLocaleDateString(),
+      Price: `$${order.price.toFixed(2)}`,
     }));
 
     // Create worksheet
@@ -84,22 +84,22 @@ const Admin = () => {
     // Set column widths
     worksheet["!cols"] = [
       { wch: 12 }, // Order ID
-      { wch: 20 }, // Customer
-      { wch: 18 }, // Service
+      { wch: 25 }, // Customer
+      { wch: 22 }, // Service
       { wch: 20 }, // Type
-      { wch: 12 }, // Status
+      { wch: 15 }, // Status
       { wch: 15 }, // Date
       { wch: 12 }, // Price
     ];
 
-    // Style header row
+    // Style header row (bold)
     const range = XLSX.utils.decode_range(worksheet["!ref"]);
     for (let col = range.s.c; col <= range.e.c; col++) {
       const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
       if (!worksheet[cellAddress]) continue;
       worksheet[cellAddress].s = {
-        font: { bold: true, color: { rgb: "FFFFFF" } },
-        fill: { fgColor: { rgb: "0A192F" } },
+        font: { bold: true, sz: 12 },
+        fill: { fgColor: { rgb: "FFD60A" } },
         alignment: { horizontal: "center", vertical: "center" },
       };
     }
@@ -112,14 +112,15 @@ const Admin = () => {
     workbook.Props = {
       Title: "Unifyr Orders Export",
       Subject: "Orders Report",
-      Author: "Unifyr Platform",
+      Author: "Unifyr Platform - Admin",
       CreatedDate: new Date(),
     };
 
-    // Generate filename with current date
-    const filename = `Unifyr_Orders_${
-      new Date().toISOString().split("T")[0]
-    }.xlsx`;
+    // Generate creative filename with date and time
+    const now = new Date();
+    const dateStr = now.toISOString().split("T")[0]; // 2025-10-31
+    const timeStr = now.toTimeString().split(" ")[0].replace(/:/g, "-"); // 16-30-45
+    const filename = `Unifyr_Orders_Report_${dateStr}_${timeStr}.xlsx`;
 
     // Download
     XLSX.writeFile(workbook, filename);
@@ -392,53 +393,33 @@ const Admin = () => {
         <EditOrder
           order={editingOrder}
           onClose={() => setEditingOrder(null)}
-          onSave={(updatedOrder) => {
-            // Find the user who owns this order
-            const registeredUsers = JSON.parse(
-              localStorage.getItem("unifyr_registered_users") || "[]"
-            );
+          onSave={async (updatedOrder) => {
+            try {
+              // Use the order's _id or orderId for the API call
+              const orderId = updatedOrder._id || updatedOrder.id;
 
-            // Find which user has this order
-            let orderOwnerEmail = null;
-            registeredUsers.forEach((regUser) => {
-              const userOrders = localStorage.getItem(
-                `orders_${regUser.email}`
-              );
-              if (userOrders) {
-                const orders = JSON.parse(userOrders);
-                if (orders.some((o) => o.id === updatedOrder.id)) {
-                  orderOwnerEmail = regUser.email;
-                }
+              const response = await adminAPI.updateOrder(orderId, {
+                status: updatedOrder.status,
+                type: updatedOrder.type,
+                price: updatedOrder.price,
+              });
+
+              if (response.success) {
+                // Update the local state with the updated order
+                const updatedAllOrders = allOrders.map((order) =>
+                  (order._id || order.orderId) ===
+                  (response.order._id || response.order.orderId)
+                    ? response.order
+                    : order
+                );
+                setAllOrders(updatedAllOrders);
+                setEditingOrder(null);
+                alert("Order updated successfully!");
               }
-            });
-
-            if (orderOwnerEmail) {
-              // Update the order in the user's localStorage
-              const userOrders = JSON.parse(
-                localStorage.getItem(`orders_${orderOwnerEmail}`) || "[]"
-              );
-              const updatedUserOrders = userOrders.map((order) =>
-                order.id === updatedOrder.id ? updatedOrder : order
-              );
-              localStorage.setItem(
-                `orders_${orderOwnerEmail}`,
-                JSON.stringify(updatedUserOrders)
-              );
-
-              // Update the local state
-              const updatedAllOrders = allOrders.map((order) =>
-                order.id === updatedOrder.id
-                  ? { ...updatedOrder, customer: order.customer }
-                  : order
-              );
-              setAllOrders(updatedAllOrders);
-
-              alert(`Order ${updatedOrder.id} updated successfully!`);
-            } else {
-              alert("Could not find order owner. Order not updated.");
+            } catch (error) {
+              console.error("Error updating order:", error);
+              alert(error.response?.data?.message || "Failed to update order");
             }
-
-            setEditingOrder(null);
           }}
         />
       )}

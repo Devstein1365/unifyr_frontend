@@ -60,7 +60,7 @@ const EditOrder = ({ order, onClose, onSave }) => {
               Order ID
             </label>
             <div className="px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white/50">
-              {order.id}
+              {order.orderId || order.id}
             </div>
           </div>
 
@@ -70,7 +70,7 @@ const EditOrder = ({ order, onClose, onSave }) => {
               Customer
             </label>
             <div className="px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white/50">
-              {order.customer}
+              {order.customer?.name || order.customer}
             </div>
           </div>
 

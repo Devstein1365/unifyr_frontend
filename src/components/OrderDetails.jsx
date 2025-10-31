@@ -41,7 +41,7 @@ const OrderDetails = ({ order, onClose }) => {
     // Invoice Details Box
     doc.setFontSize(10);
     doc.setFont(undefined, "normal");
-    doc.text(`Invoice #: ${order.id}`, 150, 32);
+    doc.text(`Invoice #: ${order.orderId || order.id}`, 150, 32);
 
     // Date and Status
     let yPos = 55;
@@ -142,8 +142,17 @@ const OrderDetails = ({ order, onClose }) => {
     doc.text("Thank you for your business!", 105, yPos, { align: "center" });
     doc.text("Visit us at unifyr.com", 105, yPos + 5, { align: "center" });
 
-    // Save PDF
-    doc.save(`Invoice_${order.id}.pdf`);
+    // Save PDF with creative filename
+    const customerName = (
+      order.customer?.name ||
+      order.customer ||
+      "Customer"
+    ).replace(/\s+/g, "_");
+    const service = order.service.replace(/\s+/g, "_");
+    const orderId = order.orderId || order.id || "Unknown";
+    const date = new Date(order.date).toISOString().split("T")[0];
+
+    doc.save(`Invoice_${customerName}_${service}_${orderId}_${date}.pdf`);
   };
 
   const getStatusColor = (status) => {
