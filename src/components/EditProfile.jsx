@@ -78,7 +78,10 @@ const EditProfile = ({ onClose }) => {
     setTimeout(() => {
       // Save to profile-specific localStorage (including profile picture)
       const profileData = { ...formData, profilePicture };
-      localStorage.setItem(`profile_${user?.email}`, JSON.stringify(profileData));
+      localStorage.setItem(
+        `profile_${user?.email}`,
+        JSON.stringify(profileData)
+      );
 
       // Update name in registered users if changed
       if (formData.name !== user?.name && user?.email !== "admin@unifyr.com") {
@@ -159,7 +162,9 @@ const EditProfile = ({ onClose }) => {
               </button>
             </div>
             <p className="text-white/60 text-sm">
-              {profilePicture ? "Change profile picture" : "Upload a profile picture"}
+              {profilePicture
+                ? "Change profile picture"
+                : "Upload a profile picture"}
             </p>
           </div>
 

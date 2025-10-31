@@ -8,6 +8,7 @@ import Home from "./pages/Home";
 import Demo from "./pages/Demo";
 import Contact from "./pages/Contact";
 import Auth from "./pages/Auth";
+import ForgotPassword from "./pages/ForgotPassword";
 import Dashboard from "./pages/Dashboard";
 import Admin from "./pages/Admin";
 
@@ -24,6 +25,7 @@ const App = () => {
               <Route path="/demo" element={<Demo />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
 
               {/* Protected User Routes */}
               <Route
