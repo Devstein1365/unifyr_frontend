@@ -66,8 +66,14 @@ const ViewAllOrders = ({ orders, onClose, onViewDetails }) => {
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-      <div className="bg-[#0A192F] border border-white/20 rounded-xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-[#0A192F] border border-white/20 rounded-xl max-w-6xl w-full max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="sticky top-0 bg-[#0A192F] border-b border-white/10 px-6 py-4 flex items-center justify-between">
           <h2 className="text-2xl font-bold text-white">All Orders</h2>
           <button
