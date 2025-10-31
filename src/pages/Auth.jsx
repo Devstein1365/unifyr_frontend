@@ -81,45 +81,34 @@ const Auth = () => {
     setLoading(true);
 
     if (isLogin) {
-      // Admin validation
-      if (
-        formData.email === "admin@unifyr.com" &&
-        formData.password === "admin2025"
-      ) {
-        const result = await login(formData.email, formData.password);
-        if (result.success) {
+      // Login - backend handles all validation
+      const result = await login(formData.email, formData.password);
+      if (result.success) {
+        // Check if user is admin and redirect accordingly
+        const user = JSON.parse(localStorage.getItem("unifyr_user") || "{}");
+        if (user.role === "admin") {
           navigate("/admin");
-        }
-      } else if (
-        formData.email === "admin@unifyr.com" &&
-        formData.password !== "admin2025"
-      ) {
-        setErrors({ general: "Invalid admin credentials" });
-        setLoading(false);
-        return;
-      } else {
-        // Regular user login
-        const result = await login(formData.email, formData.password);
-        if (result.success) {
-          navigate("/dashboard");
         } else {
-          setErrors({ general: result.error || "Invalid email or password" });
+          navigate("/dashboard");
         }
+      } else {
+        setErrors({ general: result.error || "Invalid email or password" });
       }
     } else {
-      // Prevent admin email signup
-      if (formData.email === "admin@unifyr.com") {
-        setErrors({ general: "This email is reserved" });
-        setLoading(false);
-        return;
-      }
+      // Signup - backend handles all validation
       const result = await signup(
         formData.name,
         formData.email,
         formData.password
       );
       if (result.success) {
-        navigate("/dashboard");
+        // Check if user is admin and redirect accordingly
+        const user = JSON.parse(localStorage.getItem("unifyr_user") || "{}");
+        if (user.role === "admin") {
+          navigate("/admin");
+        } else {
+          navigate("/dashboard");
+        }
       } else {
         setErrors({
           general: result.error || "Signup failed. Please try again.",
