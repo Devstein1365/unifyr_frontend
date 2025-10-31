@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   FiUsers,
   FiShoppingCart,
@@ -21,9 +21,49 @@ const Admin = () => {
   const { user } = useAuth();
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [editingOrder, setEditingOrder] = useState(null);
+  const [allOrders, setAllOrders] = useState([]);
 
-  // Mock data - replace with API calls
-  const [allOrders] = useState([
+  // Load all orders from all users in localStorage
+  useEffect(() => {
+    const loadAllOrders = () => {
+      const registeredUsers = JSON.parse(
+        localStorage.getItem("unifyr_registered_users") || "[]"
+      );
+
+      let combinedOrders = [];
+
+      // Load orders from each registered user
+      registeredUsers.forEach((registeredUser) => {
+        const userOrders = localStorage.getItem(
+          `orders_${registeredUser.email}`
+        );
+        if (userOrders) {
+          const orders = JSON.parse(userOrders);
+          // Add customer name to each order
+          const ordersWithCustomer = orders.map((order) => ({
+            ...order,
+            customer: registeredUser.name || registeredUser.email,
+          }));
+          combinedOrders = [...combinedOrders, ...ordersWithCustomer];
+        }
+      });
+
+      // Sort by date (newest first)
+      combinedOrders.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      setAllOrders(combinedOrders);
+    };
+
+    loadAllOrders();
+
+    // Refresh orders every 5 seconds to catch new orders
+    const interval = setInterval(loadAllOrders, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Old mock data kept as fallback - replace with API calls
+  const mockOrders = [
     {
       id: "ORD-001",
       customer: "John Doe",
@@ -69,7 +109,10 @@ const Admin = () => {
       date: "2025-10-26",
       price: 150.0,
     },
-  ]);
+  ];
+
+  // Use real orders if available, otherwise fallback to mock data
+  const displayOrders = allOrders.length > 0 ? allOrders : mockOrders;
 
   const [filterStatus, setFilterStatus] = useState("all");
 
@@ -136,32 +179,38 @@ const Admin = () => {
   const stats = [
     {
       label: "Total Orders",
-      value: allOrders.length,
+      value: displayOrders.length,
       change: "+12%",
       icon: FiShoppingCart,
       color: "#FFD60A",
     },
     {
       label: "Total Users",
-      value: "47",
+      value: JSON.parse(localStorage.getItem("unifyr_registered_users") || "[]")
+        .length,
       change: "+8%",
       icon: FiUsers,
       color: "#3B82F6",
     },
     {
       label: "Revenue",
-      value: `$${allOrders.reduce((sum, o) => sum + o.price, 0).toFixed(0)}`,
+      value: `$${displayOrders
+        .reduce((sum, o) => sum + o.price, 0)
+        .toFixed(0)}`,
       change: "+23%",
       icon: FiDollarSign,
       color: "#10B981",
     },
     {
       label: "Completion Rate",
-      value: `${Math.round(
-        (allOrders.filter((o) => o.status === "completed").length /
-          allOrders.length) *
-          100
-      )}%`,
+      value:
+        displayOrders.length > 0
+          ? `${Math.round(
+              (displayOrders.filter((o) => o.status === "completed").length /
+                displayOrders.length) *
+                100
+            )}%`
+          : "0%",
       change: "+5%",
       icon: FiTrendingUp,
       color: "#F59E0B",
@@ -208,8 +257,8 @@ const Admin = () => {
 
   const filteredOrders =
     filterStatus === "all"
-      ? allOrders
-      : allOrders.filter((order) => order.status === filterStatus);
+      ? displayOrders
+      : displayOrders.filter((order) => order.status === filterStatus);
 
   return (
     <div className="min-h-screen pt-24 pb-12 px-6">
@@ -377,9 +426,52 @@ const Admin = () => {
           order={editingOrder}
           onClose={() => setEditingOrder(null)}
           onSave={(updatedOrder) => {
-            alert(
-              `Order ${updatedOrder.id} updated!\nStatus: ${updatedOrder.status}\nPrice: $${updatedOrder.price}\n\nThis will update localStorage when backend is connected.`
+            // Find the user who owns this order
+            const registeredUsers = JSON.parse(
+              localStorage.getItem("unifyr_registered_users") || "[]"
             );
+
+            // Find which user has this order
+            let orderOwnerEmail = null;
+            registeredUsers.forEach((regUser) => {
+              const userOrders = localStorage.getItem(
+                `orders_${regUser.email}`
+              );
+              if (userOrders) {
+                const orders = JSON.parse(userOrders);
+                if (orders.some((o) => o.id === updatedOrder.id)) {
+                  orderOwnerEmail = regUser.email;
+                }
+              }
+            });
+
+            if (orderOwnerEmail) {
+              // Update the order in the user's localStorage
+              const userOrders = JSON.parse(
+                localStorage.getItem(`orders_${orderOwnerEmail}`) || "[]"
+              );
+              const updatedUserOrders = userOrders.map((order) =>
+                order.id === updatedOrder.id ? updatedOrder : order
+              );
+              localStorage.setItem(
+                `orders_${orderOwnerEmail}`,
+                JSON.stringify(updatedUserOrders)
+              );
+
+              // Update the local state
+              const updatedAllOrders = allOrders.map((order) =>
+                order.id === updatedOrder.id
+                  ? { ...updatedOrder, customer: order.customer }
+                  : order
+              );
+              setAllOrders(updatedAllOrders);
+
+              alert(`Order ${updatedOrder.id} updated successfully!`);
+            } else {
+              alert("Could not find order owner. Order not updated.");
+            }
+
+            setEditingOrder(null);
           }}
         />
       )}
