@@ -7,6 +7,7 @@ import {
   FiDollarSign,
   FiFilter,
 } from "react-icons/fi";
+import { jsPDF } from "jspdf";
 import Button from "./ui/Button";
 import Card from "./ui/Card";
 
@@ -22,52 +23,142 @@ const ViewInvoices = ({ orders, onClose }) => {
   const paidInvoices = orders.filter((o) => o.status === "completed").length;
 
   const downloadInvoice = (order) => {
-    // Create invoice text content
-    const invoiceContent = `
-UNIFYR - INVOICE
-=====================================
+    const doc = new jsPDF();
 
-Order ID: ${order.id}
-Date: ${order.date}
-Status: ${order.status.toUpperCase()}
+    // Set colors
+    const primaryColor = [10, 25, 47]; // Navy Blue #0A192F
+    const accentColor = [255, 214, 10]; // Electric Yellow #FFD60A
 
--------------------------------------
-SERVICE DETAILS
--------------------------------------
-Service: ${order.service}
-Type: ${order.type}
-Quantity: ${order.quantity}
+    // Header
+    doc.setFillColor(...accentColor);
+    doc.rect(0, 0, 210, 40, "F");
 
--------------------------------------
-BILLING
--------------------------------------
-Subtotal: $${order.price.toFixed(2)}
-Tax (0%): $0.00
-Total: $${order.price.toFixed(2)}
+    doc.setTextColor(...primaryColor);
+    doc.setFontSize(28);
+    doc.setFont(undefined, "bold");
+    doc.text("UNIFYR", 20, 25);
 
--------------------------------------
-Thank you for your business!
-Visit us at unifyr.com
-=====================================
-    `;
+    doc.setFontSize(10);
+    doc.setFont(undefined, "normal");
+    doc.text("Unified Services Platform", 20, 32);
 
-    // Create blob and download
-    const blob = new Blob([invoiceContent], { type: "text/plain" });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `Invoice_${order.id}.txt`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
+    // Invoice Title
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(20);
+    doc.setFont(undefined, "bold");
+    doc.text("INVOICE", 150, 25);
+
+    // Invoice Details Box
+    doc.setFontSize(10);
+    doc.setFont(undefined, "normal");
+    doc.text(`Invoice #: ${order.id}`, 150, 32);
+
+    // Date and Status
+    let yPos = 55;
+    doc.setFontSize(11);
+    doc.setFont(undefined, "bold");
+    doc.text("Date:", 20, yPos);
+    doc.setFont(undefined, "normal");
+    doc.text(order.date, 50, yPos);
+
+    yPos += 7;
+    doc.setFont(undefined, "bold");
+    doc.text("Status:", 20, yPos);
+    doc.setFont(undefined, "normal");
+    doc.setTextColor(
+      ...(order.status === "completed" ? [16, 185, 129] : [234, 179, 8])
+    );
+    doc.text(order.status.toUpperCase(), 50, yPos);
+    doc.setTextColor(0, 0, 0);
+
+    // Service Details Section
+    yPos += 15;
+    doc.setFillColor(243, 244, 246);
+    doc.rect(15, yPos - 5, 180, 8, "F");
+    doc.setFont(undefined, "bold");
+    doc.setFontSize(12);
+    doc.text("SERVICE DETAILS", 20, yPos);
+
+    yPos += 12;
+    doc.setFontSize(10);
+    doc.setFont(undefined, "bold");
+    doc.text("Service:", 20, yPos);
+    doc.setFont(undefined, "normal");
+    doc.text(order.service, 50, yPos);
+
+    yPos += 7;
+    doc.setFont(undefined, "bold");
+    doc.text("Type:", 20, yPos);
+    doc.setFont(undefined, "normal");
+    doc.text(order.type, 50, yPos);
+
+    yPos += 7;
+    doc.setFont(undefined, "bold");
+    doc.text("Quantity:", 20, yPos);
+    doc.setFont(undefined, "normal");
+    doc.text(String(order.quantity), 50, yPos);
+
+    // Additional Details if available
+    if (order.details && order.details.description) {
+      yPos += 10;
+      doc.setFont(undefined, "bold");
+      doc.text("Description:", 20, yPos);
+      doc.setFont(undefined, "normal");
+      const splitDesc = doc.splitTextToSize(order.details.description, 140);
+      doc.text(splitDesc, 50, yPos);
+      yPos += splitDesc.length * 5;
+    }
+
+    // Billing Section
+    yPos += 15;
+    doc.setFillColor(243, 244, 246);
+    doc.rect(15, yPos - 5, 180, 8, "F");
+    doc.setFont(undefined, "bold");
+    doc.setFontSize(12);
+    doc.text("BILLING", 20, yPos);
+
+    // Billing Table
+    yPos += 12;
+    doc.setFontSize(10);
+    doc.line(20, yPos, 190, yPos);
+    yPos += 7;
+
+    doc.setFont(undefined, "normal");
+    doc.text("Subtotal:", 20, yPos);
+    doc.text(`$${order.price.toFixed(2)}`, 170, yPos);
+
+    yPos += 7;
+    doc.text("Tax (0%):", 20, yPos);
+    doc.text("$0.00", 170, yPos);
+
+    yPos += 2;
+    doc.line(20, yPos, 190, yPos);
+    yPos += 7;
+
+    doc.setFont(undefined, "bold");
+    doc.setFontSize(12);
+    doc.text("TOTAL:", 20, yPos);
+    doc.setTextColor(...accentColor);
+    doc.text(`$${order.price.toFixed(2)}`, 170, yPos);
+    doc.setTextColor(0, 0, 0);
+
+    // Footer
+    yPos = 270;
+    doc.setFontSize(9);
+    doc.setFont(undefined, "normal");
+    doc.setTextColor(100, 100, 100);
+    doc.text("Thank you for your business!", 105, yPos, { align: "center" });
+    doc.text("Visit us at unifyr.com", 105, yPos + 5, { align: "center" });
+
+    // Save PDF
+    doc.save(`Invoice_${order.id}.pdf`);
   };
 
   const downloadAllInvoices = () => {
     filteredOrders.forEach((order, index) => {
       setTimeout(() => {
         downloadInvoice(order);
-      }, index * 200); // Stagger downloads by 200ms
+      }, index * 500); // Stagger downloads by 500ms for PDFs
     });
   };
 

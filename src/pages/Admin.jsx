@@ -9,6 +9,7 @@ import {
   FiCheckCircle,
   FiX,
 } from "react-icons/fi";
+import * as XLSX from "xlsx";
 import Card from "../components/ui/Card";
 import Button from "../components/ui/Button";
 import Select from "../components/ui/Select";
@@ -72,28 +73,64 @@ const Admin = () => {
 
   const [filterStatus, setFilterStatus] = useState("all");
 
-  // Export to CSV
-  const exportToCSV = () => {
-    const csvHeaders = "Order ID,Customer,Service,Type,Status,Date,Price\n";
-    const csvData = filteredOrders
-      .map(
-        (order) =>
-          `${order.id},${order.customer},${order.service},${order.type},${order.status},${order.date},${order.price}`
-      )
-      .join("\n");
+  // Export to Excel
+  const exportToExcel = () => {
+    // Prepare data for Excel
+    const excelData = filteredOrders.map((order) => ({
+      "Order ID": order.id,
+      Customer: order.customer,
+      Service: order.service,
+      Type: order.type,
+      Status: order.status.toUpperCase(),
+      Date: order.date,
+      Price: order.price,
+    }));
 
-    const csvContent = csvHeaders + csvData;
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `unifyr-orders-${
+    // Create worksheet
+    const worksheet = XLSX.utils.json_to_sheet(excelData);
+
+    // Set column widths
+    worksheet["!cols"] = [
+      { wch: 12 }, // Order ID
+      { wch: 20 }, // Customer
+      { wch: 18 }, // Service
+      { wch: 20 }, // Type
+      { wch: 12 }, // Status
+      { wch: 15 }, // Date
+      { wch: 12 }, // Price
+    ];
+
+    // Style header row
+    const range = XLSX.utils.decode_range(worksheet["!ref"]);
+    for (let col = range.s.c; col <= range.e.c; col++) {
+      const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
+      if (!worksheet[cellAddress]) continue;
+      worksheet[cellAddress].s = {
+        font: { bold: true, color: { rgb: "FFFFFF" } },
+        fill: { fgColor: { rgb: "0A192F" } },
+        alignment: { horizontal: "center", vertical: "center" },
+      };
+    }
+
+    // Create workbook
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Orders");
+
+    // Add metadata
+    workbook.Props = {
+      Title: "Unifyr Orders Export",
+      Subject: "Orders Report",
+      Author: "Unifyr Platform",
+      CreatedDate: new Date(),
+    };
+
+    // Generate filename with current date
+    const filename = `Unifyr_Orders_${
       new Date().toISOString().split("T")[0]
-    }.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
+    }.xlsx`;
+
+    // Download
+    XLSX.writeFile(workbook, filename);
   };
 
   const stats = [
@@ -226,8 +263,8 @@ const Admin = () => {
                 options={statusOptions}
                 className="min-w-[200px]"
               />
-              <Button variant="primary" size="sm" onClick={exportToCSV}>
-                Export CSV
+              <Button variant="primary" size="sm" onClick={exportToExcel}>
+                Export Excel
               </Button>
             </div>
           </div>
