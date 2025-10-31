@@ -78,7 +78,7 @@ const EditProfile = ({ onClose }) => {
     setPasswordError("");
     setPasswordSuccess(false);
 
-    // Validate passwords
+    // Check password requirements
     if (passwordData.newPassword.length < 6) {
       setPasswordError("New password must be at least 6 characters");
       return;
@@ -96,7 +96,7 @@ const EditProfile = ({ onClose }) => {
       );
 
       if (response.success) {
-        // Clear password fields and show success
+        // Reset form and show success message
         setPasswordData({
           currentPassword: "",
           newPassword: "",
@@ -156,11 +156,11 @@ const EditProfile = ({ onClose }) => {
       });
 
       if (response.success) {
-        // Update current session user data with the updated info from backend
+        // Update user session with new data
         const updatedUser = { ...user, ...response.user };
         updateUser(updatedUser);
 
-        // Also save profile picture to localStorage for quick access
+        // Cache profile picture locally
         const profileData = { ...formData, profilePicture };
         localStorage.setItem(
           `profile_${user?.email}`,

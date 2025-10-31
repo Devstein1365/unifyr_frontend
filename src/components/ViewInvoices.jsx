@@ -184,7 +184,7 @@ const ViewInvoices = ({ orders, onClose }) => {
       const zip = new JSZip();
       const invoicesFolder = zip.folder("Unifyr_Invoices");
 
-      // Generate all PDFs and add to zip with creative names
+      // Add all invoices to zip file
       filteredOrders.forEach((order) => {
         const pdfDoc = generateInvoicePDF(order);
         const pdfBlob = pdfDoc.output("blob");

@@ -90,14 +90,13 @@ const OrderForm = ({ onClose, onSubmit }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    // Format data to match backend Order model
     const orderData = {
       service: services.find((s) => s.value === formData.service)?.label || "",
       type: getOrderType(),
       quantity: getOrderQuantity(),
       price: parseFloat(calculatePrice()),
       notes: formData.description || "",
-      // Service-specific fields
+      // Add extra fields based on service type
       ...(formData.service === "printing" && {
         printType: formData.printType,
         material: formData.material,

@@ -26,7 +26,7 @@ const Admin = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Load all orders and stats from backend
+  // Load admin data from database
   useEffect(() => {
     const loadAdminData = async () => {
       try {
@@ -38,7 +38,7 @@ const Admin = () => {
           setStats(statsResponse.stats);
         }
 
-        // Load all orders
+        // Get all orders from all users
         const ordersResponse = await adminAPI.getAllOrders();
         if (ordersResponse.success) {
           setAllOrders(ordersResponse.orders || []);
@@ -54,20 +54,18 @@ const Admin = () => {
     if (user?.role === "admin") {
       loadAdminData();
 
-      // Refresh orders every 30 seconds
+      // Auto-refresh data every 30 seconds
       const interval = setInterval(loadAdminData, 30000);
       return () => clearInterval(interval);
     }
   }, [user]);
 
-  // Use real orders from backend
   const displayOrders = allOrders;
 
   const [filterStatus, setFilterStatus] = useState("all");
 
-  // Export to Excel
+  // Export orders to Excel file
   const exportToExcel = () => {
-    // Prepare data for Excel
     const excelData = filteredOrders.map((order) => ({
       "Order ID": order.orderId || order.id,
       Customer: order.customer?.name || order.customer || "N/A",
@@ -78,10 +76,9 @@ const Admin = () => {
       Price: `$${order.price.toFixed(2)}`,
     }));
 
-    // Create worksheet
     const worksheet = XLSX.utils.json_to_sheet(excelData);
 
-    // Set column widths
+    // Make columns wide enough to read
     worksheet["!cols"] = [
       { wch: 12 }, // Order ID
       { wch: 25 }, // Customer
@@ -92,7 +89,7 @@ const Admin = () => {
       { wch: 12 }, // Price
     ];
 
-    // Style header row (bold)
+    // Make headers bold with yellow background
     const range = XLSX.utils.decode_range(worksheet["!ref"]);
     for (let col = range.s.c; col <= range.e.c; col++) {
       const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
@@ -104,11 +101,9 @@ const Admin = () => {
       };
     }
 
-    // Create workbook
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Orders");
 
-    // Add metadata
     workbook.Props = {
       Title: "Unifyr Orders Export",
       Subject: "Orders Report",
@@ -116,17 +111,15 @@ const Admin = () => {
       CreatedDate: new Date(),
     };
 
-    // Generate creative filename with date and time
+    // Create unique filename with date and time
     const now = new Date();
-    const dateStr = now.toISOString().split("T")[0]; // 2025-10-31
-    const timeStr = now.toTimeString().split(" ")[0].replace(/:/g, "-"); // 16-30-45
+    const dateStr = now.toISOString().split("T")[0];
+    const timeStr = now.toTimeString().split(" ")[0].replace(/:/g, "-");
     const filename = `Unifyr_Orders_Report_${dateStr}_${timeStr}.xlsx`;
 
-    // Download
     XLSX.writeFile(workbook, filename);
   };
 
-  // Dynamic stats from backend
   const statsDisplay = stats
     ? [
         {
@@ -395,7 +388,6 @@ const Admin = () => {
           onClose={() => setEditingOrder(null)}
           onSave={async (updatedOrder) => {
             try {
-              // Use the order's _id or orderId for the API call
               const orderId = updatedOrder._id || updatedOrder.id;
 
               const response = await adminAPI.updateOrder(orderId, {
@@ -405,7 +397,7 @@ const Admin = () => {
               });
 
               if (response.success) {
-                // Update the local state with the updated order
+                // Update order in list
                 const updatedAllOrders = allOrders.map((order) =>
                   (order._id || order.orderId) ===
                   (response.order._id || response.order.orderId)

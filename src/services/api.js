@@ -78,7 +78,7 @@ export const authAPI = {
   },
 };
 
-// Order endpoints
+// Order management API
 export const orderAPI = {
   createOrder: async (orderData) => {
     const response = await api.post("/orders", orderData);
@@ -116,7 +116,7 @@ export const orderAPI = {
   },
 };
 
-// Admin endpoints
+// Admin dashboard API (admin users only)
 export const adminAPI = {
   getStats: async () => {
     const response = await api.get("/admin/stats");

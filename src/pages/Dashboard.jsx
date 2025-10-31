@@ -31,7 +31,7 @@ const Dashboard = () => {
   const [profilePicture, setProfilePicture] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Load orders from backend on component mount
+  // Fetch user's orders when page loads
   useEffect(() => {
     const loadOrders = async () => {
       try {
@@ -53,20 +53,20 @@ const Dashboard = () => {
       loadOrders();
     }
 
-    // Load profile picture from localStorage (will be moved to backend later)
+    // Get profile picture from localStorage for now
     const savedProfile = localStorage.getItem(`profile_${user?.email}`);
     if (savedProfile) {
       const profile = JSON.parse(savedProfile);
       setProfilePicture(profile.profilePicture || null);
     }
-  }, [user, showEditProfile]); // Re-load when profile is edited
+  }, [user, showEditProfile]);
 
-  // Handle new order submission
+  // Create new order via API
   const handleOrderSubmit = async (orderData) => {
     try {
       const response = await orderAPI.createOrder(orderData);
       if (response.success) {
-        // Add new order to the beginning of the list
+        // Show new order at the top
         setOrders([response.order, ...orders]);
         setShowOrderForm(false);
         alert("Order created successfully!");

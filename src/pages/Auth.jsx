@@ -81,7 +81,7 @@ const Auth = () => {
     setLoading(true);
 
     if (isLogin) {
-      // Login - backend handles all validation
+      // Login user
       const result = await login(formData.email, formData.password);
       if (result.success) {
         // Check if user is admin and redirect accordingly
@@ -95,14 +95,14 @@ const Auth = () => {
         setErrors({ general: result.error || "Invalid email or password" });
       }
     } else {
-      // Signup - backend handles all validation
+      // Register new user
       const result = await signup(
         formData.name,
         formData.email,
         formData.password
       );
       if (result.success) {
-        // Check if user is admin and redirect accordingly
+        // Redirect after successful registration
         const user = JSON.parse(localStorage.getItem("unifyr_user") || "{}");
         if (user.role === "admin") {
           navigate("/admin");
