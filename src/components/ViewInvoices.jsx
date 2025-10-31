@@ -8,11 +8,13 @@ import {
   FiFilter,
 } from "react-icons/fi";
 import { jsPDF } from "jspdf";
+import JSZip from "jszip";
 import Button from "./ui/Button";
 import Card from "./ui/Card";
 
 const ViewInvoices = ({ orders, onClose }) => {
   const [filterStatus, setFilterStatus] = useState("all");
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const filteredOrders = orders.filter((order) => {
     if (filterStatus === "all") return true;
@@ -22,12 +24,25 @@ const ViewInvoices = ({ orders, onClose }) => {
   const totalRevenue = orders.reduce((sum, order) => sum + order.price, 0);
   const paidInvoices = orders.filter((o) => o.status === "completed").length;
 
-  const downloadInvoice = (order) => {
+  const downloadInvoiceDirect = (order) => {
+    const doc = generateInvoicePDF(order);
+    const blob = new Blob([doc.output("blob")], { type: "application/pdf" });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `Invoice_${order.id}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  };
+
+  const generateInvoicePDF = (order) => {
     const doc = new jsPDF();
 
     // Set colors
-    const primaryColor = [10, 25, 47]; // Navy Blue #0A192F
-    const accentColor = [255, 214, 10]; // Electric Yellow #FFD60A
+    const primaryColor = [10, 25, 47];
+    const accentColor = [255, 214, 10];
 
     // Header
     doc.setFillColor(...accentColor);
@@ -48,7 +63,7 @@ const ViewInvoices = ({ orders, onClose }) => {
     doc.setFont(undefined, "bold");
     doc.text("INVOICE", 150, 25);
 
-    // Invoice Details Box
+    // Invoice Details
     doc.setFontSize(10);
     doc.setFont(undefined, "normal");
     doc.text(`Invoice #: ${order.id}`, 150, 32);
@@ -71,7 +86,7 @@ const ViewInvoices = ({ orders, onClose }) => {
     doc.text(order.status.toUpperCase(), 50, yPos);
     doc.setTextColor(0, 0, 0);
 
-    // Service Details Section
+    // Service Details
     yPos += 15;
     doc.setFillColor(243, 244, 246);
     doc.rect(15, yPos - 5, 180, 8, "F");
@@ -98,7 +113,6 @@ const ViewInvoices = ({ orders, onClose }) => {
     doc.setFont(undefined, "normal");
     doc.text(String(order.quantity), 50, yPos);
 
-    // Additional Details if available
     if (order.details && order.details.description) {
       yPos += 10;
       doc.setFont(undefined, "bold");
@@ -109,7 +123,7 @@ const ViewInvoices = ({ orders, onClose }) => {
       yPos += splitDesc.length * 5;
     }
 
-    // Billing Section
+    // Billing
     yPos += 15;
     doc.setFillColor(243, 244, 246);
     doc.rect(15, yPos - 5, 180, 8, "F");
@@ -117,7 +131,6 @@ const ViewInvoices = ({ orders, onClose }) => {
     doc.setFontSize(12);
     doc.text("BILLING", 20, yPos);
 
-    // Billing Table
     yPos += 12;
     doc.setFontSize(10);
     doc.line(20, yPos, 190, yPos);
@@ -150,16 +163,44 @@ const ViewInvoices = ({ orders, onClose }) => {
     doc.text("Thank you for your business!", 105, yPos, { align: "center" });
     doc.text("Visit us at unifyr.com", 105, yPos + 5, { align: "center" });
 
-    // Save PDF
-    doc.save(`Invoice_${order.id}.pdf`);
+    return doc;
   };
 
-  const downloadAllInvoices = () => {
-    filteredOrders.forEach((order, index) => {
-      setTimeout(() => {
-        downloadInvoice(order);
-      }, index * 500); // Stagger downloads by 500ms for PDFs
-    });
+  const downloadAllInvoices = async () => {
+    setIsDownloading(true);
+
+    try {
+      const zip = new JSZip();
+      const invoicesFolder = zip.folder("Unifyr_Invoices");
+
+      // Generate all PDFs and add to zip
+      filteredOrders.forEach((order) => {
+        const pdfDoc = generateInvoicePDF(order);
+        const pdfBlob = pdfDoc.output("blob");
+        invoicesFolder.file(`Invoice_${order.id}.pdf`, pdfBlob);
+      });
+
+      // Generate zip file
+      const zipBlob = await zip.generateAsync({ type: "blob" });
+
+      // Download zip
+      const url = window.URL.createObjectURL(zipBlob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `Unifyr_Invoices_${
+        new Date().toISOString().split("T")[0]
+      }.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      setIsDownloading(false);
+    } catch (error) {
+      console.error("Error creating zip file:", error);
+      alert("Failed to create zip file. Please try again.");
+      setIsDownloading(false);
+    }
   };
 
   const getStatusBadge = (status) => {
@@ -300,7 +341,7 @@ const ViewInvoices = ({ orders, onClose }) => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => downloadInvoice(order)}
+                        onClick={() => downloadInvoiceDirect(order)}
                         className="flex items-center gap-2"
                       >
                         <FiDownload size={16} />
@@ -322,9 +363,11 @@ const ViewInvoices = ({ orders, onClose }) => {
               variant="primary"
               className="flex-1"
               onClick={downloadAllInvoices}
-              disabled={filteredOrders.length === 0}
+              disabled={filteredOrders.length === 0 || isDownloading}
             >
-              Download All ({filteredOrders.length})
+              {isDownloading
+                ? "Creating ZIP..."
+                : `Download All (${filteredOrders.length})`}
             </Button>
           </div>
         </div>
