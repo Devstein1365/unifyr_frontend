@@ -6,6 +6,7 @@ import {
   FiX,
   FiTrendingUp,
   FiShoppingCart,
+  FiUser,
 } from "react-icons/fi";
 import Card from "../components/ui/Card";
 import Button from "../components/ui/Button";
@@ -26,8 +27,9 @@ const Dashboard = () => {
   const [showAllOrders, setShowAllOrders] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [orders, setOrders] = useState([]);
+  const [profilePicture, setProfilePicture] = useState(null);
 
-  // Load orders from localStorage on component mount
+  // Load orders and profile from localStorage on component mount
   useEffect(() => {
     const savedOrders = localStorage.getItem(`orders_${user?.email}`);
     if (savedOrders) {
@@ -69,7 +71,14 @@ const Dashboard = () => {
         JSON.stringify(initialOrders)
       );
     }
-  }, [user?.email]);
+
+    // Load profile picture
+    const savedProfile = localStorage.getItem(`profile_${user?.email}`);
+    if (savedProfile) {
+      const profile = JSON.parse(savedProfile);
+      setProfilePicture(profile.profilePicture || null);
+    }
+  }, [user?.email, showEditProfile]); // Re-load when profile is edited
 
   // Handle new order submission
   const handleOrderSubmit = (orderData) => {
@@ -274,7 +283,21 @@ const Dashboard = () => {
             {/* Profile Info */}
             <Card variant="glass">
               <h3 className="text-xl font-bold text-white mb-4">Profile</h3>
-              <div className="space-y-3">
+              <div className="space-y-4">
+                {/* Profile Picture */}
+                <div className="flex justify-center">
+                  <div className="w-20 h-20 rounded-full bg-[#FFD60A]/20 border-2 border-[#FFD60A] flex items-center justify-center overflow-hidden">
+                    {profilePicture ? (
+                      <img
+                        src={profilePicture}
+                        alt="Profile"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <FiUser className="text-[#FFD60A]" size={32} />
+                    )}
+                  </div>
+                </div>
                 <div>
                   <p className="text-white/60 text-sm">Name</p>
                   <p className="text-white font-medium">{user?.name}</p>

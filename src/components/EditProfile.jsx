@@ -33,10 +33,42 @@ const EditProfile = ({ onClose }) => {
 
   const [formData, setFormData] = useState(loadProfileData());
   const [isSaving, setIsSaving] = useState(false);
+  const [profilePicture, setProfilePicture] = useState(() => {
+    const savedProfile = localStorage.getItem(`profile_${user?.email}`);
+    if (savedProfile) {
+      const profile = JSON.parse(savedProfile);
+      return profile.profilePicture || null;
+    }
+    return null;
+  });
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handlePictureUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Check file size (max 2MB)
+      if (file.size > 2 * 1024 * 1024) {
+        alert("File size must be less than 2MB");
+        return;
+      }
+
+      // Check file type
+      if (!file.type.startsWith("image/")) {
+        alert("Please upload an image file");
+        return;
+      }
+
+      // Convert to base64
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfilePicture(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleSubmit = (e) => {
@@ -44,8 +76,9 @@ const EditProfile = ({ onClose }) => {
     setIsSaving(true);
 
     setTimeout(() => {
-      // Save to profile-specific localStorage
-      localStorage.setItem(`profile_${user?.email}`, JSON.stringify(formData));
+      // Save to profile-specific localStorage (including profile picture)
+      const profileData = { ...formData, profilePicture };
+      localStorage.setItem(`profile_${user?.email}`, JSON.stringify(profileData));
 
       // Update name in registered users if changed
       if (formData.name !== user?.name && user?.email !== "admin@unifyr.com") {
@@ -97,17 +130,37 @@ const EditProfile = ({ onClose }) => {
           {/* Profile Picture */}
           <div className="flex flex-col items-center gap-4 pb-6 border-b border-white/10">
             <div className="relative">
-              <div className="w-24 h-24 rounded-full bg-[#FFD60A]/20 border-2 border-[#FFD60A] flex items-center justify-center">
-                <FiUser className="text-[#FFD60A]" size={40} />
+              <div className="w-24 h-24 rounded-full bg-[#FFD60A]/20 border-2 border-[#FFD60A] flex items-center justify-center overflow-hidden">
+                {profilePicture ? (
+                  <img
+                    src={profilePicture}
+                    alt="Profile"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <FiUser className="text-[#FFD60A]" size={40} />
+                )}
               </div>
+              <input
+                type="file"
+                id="profile-picture-upload"
+                accept="image/*"
+                onChange={handlePictureUpload}
+                className="hidden"
+              />
               <button
                 type="button"
+                onClick={() =>
+                  document.getElementById("profile-picture-upload").click()
+                }
                 className="absolute bottom-0 right-0 w-8 h-8 bg-[#FFD60A] rounded-full flex items-center justify-center hover:bg-[#FFD60A]/80 transition-colors"
               >
                 <FiCamera className="text-[#0A192F]" size={16} />
               </button>
             </div>
-            <p className="text-white/60 text-sm">Upload a profile picture</p>
+            <p className="text-white/60 text-sm">
+              {profilePicture ? "Change profile picture" : "Upload a profile picture"}
+            </p>
           </div>
 
           {/* Personal Information */}
