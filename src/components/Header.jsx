@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { FiMenu, FiX, FiUser, FiLogOut } from "react-icons/fi";
 import Button from "./ui/Button";
 import { useAuth } from "../context/AuthContext";
+import Logo from "../assets/logo.png"
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -24,8 +25,9 @@ const Header = () => {
         <div className="flex items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-[#FFD60A] rounded-lg flex items-center justify-center">
-              <span className="text-[#0A192F] font-bold text-xl">U</span>
+            <div className="w-10 h-10  rounded-lg flex items-center justify-center">
+              {/* <span className="text-[#0A192F] font-bold text-xl">U</span> */}
+              <img src={Logo} alt="logo" />
             </div>
             <span className="text-2xl font-bold text-white">Unifyr</span>
           </Link>
