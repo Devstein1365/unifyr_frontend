@@ -13,7 +13,7 @@ const Hero = () => {
           <div className="inline-flex items-center gap-2 bg-[#FFD60A]/10 border border-[#FFD60A]/30 rounded-full px-4 py-2 mb-6">
             <FiZap className="text-[#FFD60A]" size={16} />
             <span className="text-[#FFD60A] text-sm font-semibold">
-              Stop Outsourcing. Start Unifying.
+              Manage all your business arms from one digital hub.
             </span>
           </div>
 
