@@ -12,10 +12,18 @@ const Footer = () => {
   };
 
   const socialLinks = [
-    { icon: FiTwitter, href: "#", label: "Twitter" },
-    { icon: FiLinkedin, href: "#", label: "LinkedIn" },
-    { icon: FiGithub, href: "#", label: "GitHub" },
-    { icon: FiMail, href: "#", label: "Email" },
+    { icon: FiTwitter, href: "https://www.x.com/Devstein1365", label: "Twitter" },
+    {
+      icon: FiLinkedin,
+      href: "https://www.linkedin.com/in/gospel-ogah-3342a5296/",
+      label: "LinkedIn",
+    },
+    {
+      icon: FiGithub,
+      href: "https://github.com/Devstein1365",
+      label: "GitHub",
+    },
+    { icon: FiMail, href: "malito:ogagospel9@gmail.com", label: "Email" },
   ];
 
   return (
@@ -57,7 +65,9 @@ const Footer = () => {
                 {links.map((link) => (
                   <li key={link}>
                     <a
-                      href="#"
+                      href={""}
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="text-white/60 hover:text-[#FFD60A] transition-colors text-sm"
                     >
                       {link}
@@ -72,10 +82,10 @@ const Footer = () => {
         {/* Bottom Bar */}
         <div className="pt-6 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-white/50 text-sm">
-            © {currentYear} Unifyr. All rights reserved.
+            © {currentYear} Unifyr @Devstein. All rights reserved.
           </p>
           <p className="text-white/50 text-sm">
-            Built with ❤️ for modern businesses
+            Built by Oga Gospel for modern businesses
           </p>
         </div>
       </div>

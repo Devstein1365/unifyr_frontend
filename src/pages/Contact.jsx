@@ -36,19 +36,19 @@ const Contact = () => {
     {
       icon: FiMail,
       label: "Email Us",
-      value: "hello@unifyr.com",
-      link: "mailto:hello@unifyr.com",
+      value: "ogagospel9@gmail.com",
+      link: "mailto:ogagospel9@gmail.com",
     },
     {
       icon: FiPhone,
       label: "Call Us",
-      value: "+1 (555) 123-4567",
-      link: "tel:+15551234567",
+      value: "+234 916-0542-481",
+      link: "tel:+2349160542481",
     },
     {
       icon: FiMapPin,
       label: "Visit Us",
-      value: "123 Business Street, Tech City, TC 12345",
+      value: "Abuja Nigeria",
       link: "#",
     },
     {
@@ -60,9 +60,9 @@ const Contact = () => {
   ];
 
   const socialLinks = [
-    { icon: FiLinkedin, label: "LinkedIn", href: "#" },
-    { icon: FiTwitter, label: "Twitter", href: "#" },
-    { icon: FiInstagram, label: "Instagram", href: "#" },
+    { icon: FiLinkedin, label: "LinkedIn", href: "https://www.linkedin.com/in/gospel-ogah-3342a5296/" },
+    { icon: FiTwitter, label: "Twitter", href: "https://www.x.com/devstein1365" },
+    { icon: FiInstagram, label: "Instagram", href: "https://www.instagram.com/fingers_ofgod" },
   ];
 
   const handleInputChange = (e) => {
@@ -182,7 +182,7 @@ const Contact = () => {
                       <Input
                         label="Your Name"
                         name="name"
-                        placeholder="John Doe"
+                        placeholder="Oga Gospel"
                         value={formData.name}
                         onChange={handleInputChange}
                         required
@@ -192,7 +192,7 @@ const Contact = () => {
                         label="Email Address"
                         name="email"
                         type="email"
-                        placeholder="john@example.com"
+                        placeholder="ogagospel9@gmail.com"
                         value={formData.email}
                         onChange={handleInputChange}
                         required
@@ -204,7 +204,7 @@ const Contact = () => {
                         label="Phone Number"
                         name="phone"
                         type="tel"
-                        placeholder="+1 (555) 000-0000"
+                        placeholder="+234 916-0542-481"
                         value={formData.phone}
                         onChange={handleInputChange}
                       />
@@ -278,7 +278,7 @@ const Contact = () => {
                 <FiMapPin className="text-[#FFD60A] mx-auto mb-4" size={48} />
                 <p className="text-white/70">Interactive Map Coming Soon</p>
                 <p className="text-white/50 text-sm mt-2">
-                  123 Business Street, Tech City
+                  123 Abuja Street, Nigeria
                 </p>
               </div>
             </Card>
