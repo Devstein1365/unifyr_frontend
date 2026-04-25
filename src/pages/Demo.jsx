@@ -229,7 +229,7 @@ const Demo = () => {
                     <Input
                       label="Full Name"
                       name="name"
-                      placeholder="John Doe"
+                      placeholder="Oga Gospel"
                       value={formData.name}
                       onChange={handleInputChange}
                       required
@@ -239,7 +239,7 @@ const Demo = () => {
                       label="Email Address"
                       name="email"
                       type="email"
-                      placeholder="john@example.com"
+                      placeholder="ogagospel9@gmail.com"
                       value={formData.email}
                       onChange={handleInputChange}
                       required
@@ -249,7 +249,7 @@ const Demo = () => {
                       label="Phone Number"
                       name="phone"
                       type="tel"
-                      placeholder="+1 (555) 000-0000"
+                      placeholder="+234 916-0542-481"
                       value={formData.phone}
                       onChange={handleInputChange}
                       required
