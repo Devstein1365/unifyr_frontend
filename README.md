@@ -292,12 +292,12 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## 📞 Support
 
-For support, email your-email@example.com or open an issue in the repository.
+For support, email ogagospel9@gmail.com or open an issue in the repository.
 
 ---
 
 <div align="center">
-  Made with ❤️ by Your Team
+  Made by Your Oga Gospel Oligwu
   
-  [Website](https://your-website.com) • [Documentation](https://docs.your-website.com) • [Report Bug](https://github.com/your-repo/issues)
+  [Website](https://www.unifyr-sigma.vercel.app/)
 </div>
